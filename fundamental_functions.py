@@ -88,3 +88,57 @@ def fitting(domain, data, model):
     # It only calls the fitting from curve_fit.
     popt, pcov = curve_fit(model, domain, data)
     return popt
+
+# Some calculations added.
+def FWHM_moffat(alpha_x, alpha_y, beta):
+    r_d = (np.abs(alpha_x) + np.abs(alpha_y))/2
+    return 2*np.sqrt(2**(1/beta)-1)*r_d
+
+def FWHM_gauss(sigma):
+    return 2*np.sqrt(2*np.log(2))*sigma
+
+# Flux scaling function.
+def flux_scaling(psf, x_center, y_center, psfcen, winds, wave_slice, data, 
+                r_psf_sub, r_psf_scale, delta_lamb=1.25):
+    """
+    It applies the flux scaling method to substract the PSF from the object.
+    ------------------------------
+    Inputs:
+    psf [np.ndarray] = PSF of the QSO, it can be an empirical or fitted PSF.
+    x_center, y_center [float] = x and y coordinates of the center of the object in pixels.
+    psf_cen[tuple] = a tuple of the center of the PSF in pixel coordinates.
+    winds[np.ndarray] = an array of wavelenght to perform the substraction.
+    wave_slice[int] = 
+    """
+
+    initial_img = np.zeros((r_psf_sub,r_psf_sub))
+    for w1 in winds:
+        w2 = w1 + wave_slice
+
+        #slice the cube between indcies w1:w2, and only focus on region intedended for PSF subtraction
+        img = data[w1:w2, (x_center-r_psf_sub):(x_center+r_psf_sub),
+            (y_center-r_psf_sub):(y_center+r_psf_sub)].sum(axis=0)*delta_lamb
+
+        #Do same thing, but only for where the PSF is going to be scaled (smaller tha img)
+        scale_img = data[w1:w2, (x_center-r_psf_scale):(x_center+r_psf_scale), 
+            (y_center-r_psf_scale):(y_center+r_psf_scale)].sum(axis=0)*delta_lamb
+
+        #Create the modelled PSF in the same coordiantes as scale_img
+        scale_psf = psf[(psfcen[0]-r_psf_scale):(psfcen[0]+r_psf_scale), 
+                        (psfcen[1]-r_psf_scale):(psfcen[1]+r_psf_scale)]
+
+        #Find the scaling necesary to match the modelled PSF to scale_imge
+        norm = np.sum(scale_img) / np.sum(scale_psf)
+
+        #Subtract the scaled PSF from the PSF subtraction image (img)
+        psf_sub_img = img - norm * psf
+
+        #Mask out the region where the PSF scaling was done with Nans
+        psf_sub_img_nan = psf_sub_img.copy()
+        psf_sub_img_nan[(psfcen[0]-r_psf_scale):(psfcen[0]+r_psf_scale), \
+                    (psfcen[1]-r_psf_scale):(psfcen[1]+r_psf_scale)] = float('nan')
+
+        #Add the scaled image to a borad-banned PSF-subtracted image
+        initial_img += psf_sub_img
+    
+    return initial_img, img, norm
