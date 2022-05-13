@@ -93,8 +93,7 @@ def FWHM_gauss(sigma):
     return 2*np.sqrt(2*np.log(2))*sigma
 
 # Flux scaling function.
-def flux_scaling(psf, x_center, y_center, psfcen, winds, wave_slice, data, 
-                r_psf_sub, r_psf_scale, delta_lamb=1.25):
+def flux_scaling(psf, x_center, y_center, psfcen, winds, wave_slice, data, r_psf_sub, r_psf_scale, delta_lamb=1.25):
     """
     It applies the flux scaling method to substract the PSF from the object.
     ------------------------------
@@ -105,7 +104,6 @@ def flux_scaling(psf, x_center, y_center, psfcen, winds, wave_slice, data,
     winds[np.ndarray] = an array of wavelenght to perform the substraction.
     wave_slice[int] = 
     """
-
     initial_img = np.zeros((2*r_psf_sub,2*r_psf_sub))
     for w1 in winds:
         w2 = w1 + wave_slice
