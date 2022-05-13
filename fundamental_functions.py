@@ -84,11 +84,6 @@ def moffat_integrated_func(X, A, x_off, y_off,alpha_x, alpha_y, beta, off_set, d
     result = Z.ravel()
     return result
 
-def fitting(domain, data, model):
-    # It only calls the fitting from curve_fit.
-    popt, pcov = curve_fit(model, domain, data)
-    return popt
-
 # Some calculations added.
 def FWHM_moffat(alpha_x, alpha_y, beta):
     r_d = (np.abs(alpha_x) + np.abs(alpha_y))/2
@@ -111,7 +106,7 @@ def flux_scaling(psf, x_center, y_center, psfcen, winds, wave_slice, data,
     wave_slice[int] = 
     """
 
-    initial_img = np.zeros((r_psf_sub,r_psf_sub))
+    initial_img = np.zeros((2*r_psf_sub,2*r_psf_sub))
     for w1 in winds:
         w2 = w1 + wave_slice
 
