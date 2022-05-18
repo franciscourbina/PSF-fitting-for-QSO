@@ -10,6 +10,21 @@ def moffat(X, A, x_off, y_off,alpha_x, alpha_y, beta, off_set):
     r_y = ((y-y_off)**2 )/ (alpha_y**2)
     return A*(1 + r_x + r_y)**(-beta) + off_set
 
+def rotated_moffat(X, A, x_off, y_off,alpha_x, alpha_y, beta, off_set, theta=0):
+    x, y = X
+    x_cord = x.copy()
+    y_cord = y.copy()
+    # Rotation matrix 
+    c, s  = np.cos(theta), np.sin(theta)
+    x_cord -= x_off
+    y_cord -= y_off
+    x_r = c*x_cord - s*y_cord 
+    y_r = s*x_cord + c*y_cord
+    # Elliptical moffat
+    r_x = ((x_r)**2 )/ (alpha_x**2)
+    r_y = ((y_r)**2 )/ (alpha_y**2)
+    return A*(1 + r_x + r_y)**(-beta) + off_set
+
 # 2d Gaussian distribution
 def dim2_gauss(X, mu1,sig1, mu2,sig2, A, off_set):
     x,y = X
