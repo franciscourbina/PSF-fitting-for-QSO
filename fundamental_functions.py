@@ -10,10 +10,10 @@ def moffat(X, A, x_off, y_off,alpha_x, alpha_y, beta, off_set):
     r_y = ((y-y_off)**2 )/ (alpha_y**2)
     return A*(1 + r_x + r_y)**(-beta) + off_set
 
-def rotated_moffat(X, A, x_off, y_off,alpha_x, alpha_y, beta, off_set, theta=0):
+def rotated_moffat(X, A, x_off, y_off,alpha_x, alpha_y, beta, theta=0):
     x, y = X
-    x_cord = x.copy()
-    y_cord = y.copy()
+    x_cord = x
+    y_cord = y
     # Rotation matrix 
     c, s  = np.cos(theta), np.sin(theta)
     x_cord -= x_off
@@ -23,7 +23,15 @@ def rotated_moffat(X, A, x_off, y_off,alpha_x, alpha_y, beta, off_set, theta=0):
     # Elliptical moffat
     r_x = ((x_r)**2 )/ (alpha_x**2)
     r_y = ((y_r)**2 )/ (alpha_y**2)
-    return A*(1 + r_x + r_y)**(-beta) + off_set
+    return A*(1 + r_x + r_y)**(-beta)
+
+def double_moffat(X, A1, A2, x_off, y_off, alpha_x1, alpha_x2, alpha_y1, alpha_y2, beta1, beta2, off_set):
+    # Double moffat summation, the two components share the center. Second component
+    # is rotated in 45°.
+    normal_moffat = moffat(X, A1, x_off, y_off, alpha_x1, alpha_y1, beta1, off_set)
+    rotated_moff = rotated_moffat(X, A2, x_off, y_off, alpha_x2, alpha_y2, beta2, theta=np.pi/4)
+    
+    return normal_moffat + rotated_moff
 
 # 2d Gaussian distribution
 def dim2_gauss(X, mu1,sig1, mu2,sig2, A, off_set):
@@ -99,6 +107,40 @@ def moffat_integrated_func(X, A, x_off, y_off,alpha_x, alpha_y, beta, off_set, d
     result = Z.ravel()
     return result
 
+def double_moffat_integrated_func(X, A1, A2, x_off, y_off, alpha_x1, alpha_x2, alpha_y1, alpha_y2, beta1, beta2, off_set,
+                                    delta_x=0.2, delta_y=0.2, abs_tol=1e-2, rel_tol=1e-2, method = 'scipy', n = 10, Ns=30):
+
+    # Same as moffat_integrated_func. This is not the ideal way to do this, but it works.
+    x,y = X
+    
+    x = x.reshape(Ns,Ns)
+    y = y.reshape(Ns,Ns)
+    
+    N = np.shape(x)[0]
+    M = np.shape(x)[1]
+    
+    Z =  np.zeros((N,M))
+    
+    f = lambda x,y: double_moffat((x,y), A1, A2, x_off, y_off, alpha_x1, alpha_x2, alpha_y1, alpha_y2, beta1, beta2, off_set) 
+        
+    for i in range(N):
+        for j in range(M):
+            # Defining the integration domain.
+            x_lower = x[i,j] - delta_x / 2
+            x_upper = x[i,j] + delta_x / 2
+            y_lower = y[i,j] - delta_y / 2
+            y_upper = y[i,j] + delta_y / 2
+            
+            if method == 'scipy':
+                Z[i,j] = dblquad(f , x_lower, x_upper, y_lower, y_upper, epsabs=abs_tol, epsrel=rel_tol)[0]
+            else: 
+                Z[i,j] = d2_trapz(f, x_lower, x_upper, y_lower, y_upper, n = n)
+
+    result = Z.ravel()
+    return result
+
+
+
 # Some calculations added.
 def FWHM_moffat(alpha_x, alpha_y, beta):
     r_d = (np.abs(alpha_x) + np.abs(alpha_y))/2
@@ -117,7 +159,16 @@ def flux_scaling(psf, x_center, y_center, psfcen, winds, wave_slice, data, r_psf
     x_center, y_center [float] = x and y coordinates of the center of the object in pixels.
     psf_cen[tuple] = a tuple of the center of the PSF in pixel coordinates.
     winds[np.ndarray] = an array of wavelenght to perform the substraction.
-    wave_slice[int] = 
+    wave_slice[int] = separation in the spectral axis given in "pixels".
+    data[np.ndarray] = MUSE data cube.
+    r_psf_sub[int] = radius, in pixels, of the region to be flux scaled.
+    r_psf_scale[int] = radius, in pixels, of the region to be used to calculate the normalization factor.
+    delta_lamb[float] = spectral axis resolution in Angstroms.
+
+    Outputs:
+    initial_img[np.ndarray] = final substracted image.
+    img[np.ndarray] = last PSF scaled image used.
+    norm[float] = last normalization factor used to scale "img".
     """
     initial_img = np.zeros((2*r_psf_sub,2*r_psf_sub))
     for w1 in winds:
