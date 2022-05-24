@@ -10,7 +10,7 @@ def moffat(X, A, x_off, y_off,alpha_x, alpha_y, beta, off_set):
     r_y = ((y-y_off)**2 )/ (alpha_y**2)
     return A*(1 + r_x + r_y)**(-beta) + off_set
 
-def rotated_moffat(X, A, x_off, y_off,alpha_x, alpha_y, beta, theta=0):
+def rotated_moffat(X, A, x_off, y_off,alpha_x, alpha_y, beta, theta):
     x, y = X
     x_cord = x
     y_cord = y
@@ -25,11 +25,11 @@ def rotated_moffat(X, A, x_off, y_off,alpha_x, alpha_y, beta, theta=0):
     r_y = ((y_r)**2 )/ (alpha_y**2)
     return A*(1 + r_x + r_y)**(-beta)
 
-def double_moffat(X, A1, A2, x_off, y_off, alpha_x1, alpha_x2, alpha_y1, alpha_y2, beta1, beta2, off_set):
+def double_moffat(X, A1, A2, x_off, y_off, alpha_x1, alpha_x2, alpha_y1, alpha_y2, beta1, beta2, off_set, theta):
     # Double moffat summation, the two components share the center. Second component
     # is rotated in 45°.
     normal_moffat = moffat(X, A1, x_off, y_off, alpha_x1, alpha_y1, beta1, off_set)
-    rotated_moff = rotated_moffat(X, A2, x_off, y_off, alpha_x2, alpha_y2, beta2, theta=np.pi/4)
+    rotated_moff = rotated_moffat(X, A2, x_off, y_off, alpha_x2, alpha_y2, beta2, theta)
     
     return normal_moffat + rotated_moff
 
@@ -107,7 +107,7 @@ def moffat_integrated_func(X, A, x_off, y_off,alpha_x, alpha_y, beta, off_set, d
     result = Z.ravel()
     return result
 
-def double_moffat_integrated_func(X, A1, A2, x_off, y_off, alpha_x1, alpha_x2, alpha_y1, alpha_y2, beta1, beta2, off_set,
+def double_moffat_integrated_func(X, A1, A2, x_off, y_off, alpha_x1, alpha_x2, alpha_y1, alpha_y2, beta1, beta2, off_set, theta,
                                     delta_x=0.2, delta_y=0.2, abs_tol=1e-2, rel_tol=1e-2, method = 'scipy', n = 10, Ns=30):
 
     # Same as moffat_integrated_func. This is not the ideal way to do this, but it works.
@@ -121,7 +121,7 @@ def double_moffat_integrated_func(X, A1, A2, x_off, y_off, alpha_x1, alpha_x2, a
     
     Z =  np.zeros((N,M))
     
-    f = lambda x,y: double_moffat((x,y), A1, A2, x_off, y_off, alpha_x1, alpha_x2, alpha_y1, alpha_y2, beta1, beta2, off_set) 
+    f = lambda x,y: double_moffat((x,y), A1, A2, x_off, y_off, alpha_x1, alpha_x2, alpha_y1, alpha_y2, beta1, beta2, off_set, theta) 
         
     for i in range(N):
         for j in range(M):
